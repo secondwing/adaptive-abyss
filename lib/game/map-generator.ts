@@ -68,7 +68,7 @@ export function generateMap(
         type: selectRoomType(rng),
         visited: false,
         cleared: false,
-        dangerLevel: (chapter - 1) * 10,
+        dangerLevel: (chapter - 1) * 5,
         resourceValue: 0,
         lastUpdateTurn: 1,
       };

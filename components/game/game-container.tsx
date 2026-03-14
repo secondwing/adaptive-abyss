@@ -12,6 +12,7 @@ import { RestScreen } from './rest-screen';
 import { EventScreen } from './event-screen';
 import { TreasureScreen } from './treasure-screen';
 import { GameOverScreen } from './game-over-screen';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 export function GameContainer() {
   const { phase } = useGameStore();
@@ -27,7 +28,8 @@ export function GameContainer() {
   }
   
   return (
-    <div className="h-screen max-h-screen overflow-hidden flex flex-col md:flex-row bg-background">
+    <TooltipProvider delayDuration={200}>
+      <div className="h-screen max-h-screen overflow-hidden flex flex-col md:flex-row bg-background">
       {/* Left Column (HUD + Main Game Area) */}
       <div className="flex-1 flex flex-col overflow-hidden min-h-0 relative">
         {/* Resource HUD (Top of Left Column) */}
@@ -60,5 +62,6 @@ export function GameContainer() {
       {/* Absolute full-screen overlays */}
       {phase === 'battle' && <BattleScreen />}
     </div>
+    </TooltipProvider>
   );
 }

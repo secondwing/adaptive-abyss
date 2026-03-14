@@ -3,6 +3,7 @@
 import { useGameStore } from '@/lib/game/store';
 import { Coins, Heart, Zap, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 interface ResourceItemProps {
   icon: React.ReactNode;
@@ -59,12 +60,22 @@ export function ResourceHUD() {
       </div>
       
       {(() => {
-        const totalDanger = map.rooms.flat().reduce((sum, room) => sum + room.dangerLevel, 0);
-        return totalDanger > 0 ? (
-          <div className="flex items-center gap-2 px-3 py-1 bg-red-500/10 rounded-lg border border-red-500/20">
-            <span className="text-xs font-medium text-red-400">Danger</span>
-            <span className="text-sm font-bold text-red-500 tabular-nums">{Math.floor(totalDanger)}</span>
-          </div>
+        const maxDanger = Math.max(...map.rooms.flat().map(room => room.dangerLevel));
+        return maxDanger > 0 ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-2 px-3 py-1 bg-red-500/10 rounded-lg border border-red-500/20 cursor-help">
+                <span className="text-xs font-medium text-red-400">Danger</span>
+                <span className="text-sm font-bold text-red-500 tabular-nums">{Math.floor(maxDanger)}</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent className="bg-card border-border text-foreground p-3 space-y-1.5 shadow-xl">
+              <p className="font-semibold text-red-400 mb-2 border-b border-border/50 pb-1">위험 지역 페널티 현황</p>
+              <div className="flex justify-between gap-4 text-xs"><span className="text-muted-foreground">적 체력:</span><span className="font-medium text-red-300">+{Math.floor(maxDanger * 5)}%</span></div>
+              <div className="flex justify-between gap-4 text-xs"><span className="text-muted-foreground">적 공격력:</span><span className="font-medium text-orange-300">+{Math.floor(maxDanger * 5)}%</span></div>
+              <div className="flex justify-between gap-4 text-xs"><span className="text-muted-foreground">전리품 보상:</span><span className="font-medium text-yellow-300">+{Math.floor(maxDanger * 5)}%</span></div>
+            </TooltipContent>
+          </Tooltip>
         ) : null;
       })()}
       

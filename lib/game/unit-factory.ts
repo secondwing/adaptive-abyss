@@ -189,9 +189,11 @@ export function getRarityBorderColor(rarity: UnitRarity): string {
 
 // Level up a unit's stats (increases all stats by 10%)
 export function levelUpUnit(stats: UnitStats): UnitStats {
+  const newMaxHp = Math.floor(stats.maxHp * 1.1);
+  const hpRatio = stats.maxHp > 0 ? stats.hp / stats.maxHp : 1;
   return {
-    hp: stats.hp, // HP is kept same (healed separately if needed)
-    maxHp: Math.floor(stats.maxHp * 1.1),
+    hp: Math.floor(newMaxHp * hpRatio), // Scale HP proportionally with MaxHP
+    maxHp: newMaxHp,
     atk: Math.floor(stats.atk * 1.1),
     def: Math.floor(stats.def * 1.1),
     mgk: Math.floor(stats.mgk * 1.1),
