@@ -15,7 +15,11 @@ import {
   Sparkles,
   ChevronRight,
   User,
+  Trash2,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface UnitCardProps {
   unit: Unit;
@@ -127,7 +131,7 @@ export function PartyPanel() {
     <div className="flex flex-col h-full max-h-full bg-card/30 overflow-hidden">
       <div className="p-4 border-b border-border/50">
         <h2 className="text-sm font-semibold text-foreground">Party</h2>
-        <p className="text-xs text-muted-foreground">{party.length}/6 Units</p>
+        <p className="text-xs text-muted-foreground">{party.length}/9 Units</p>
       </div>
       
       <div className="flex-1 overflow-y-auto p-3 space-y-2 min-h-0">
@@ -143,10 +147,49 @@ export function PartyPanel() {
       
       {selectedUnit && (
         <div className="p-4 border-t border-border/50 bg-card/50 flex-shrink-0">
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-primary" />
-            Stats
-          </h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" />
+              Stats
+            </h3>
+            
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7 bg-secondary/50 hover:bg-secondary border-border/50"
+                onClick={() => {
+                  useGameStore.getState().moveUnit(selectedUnit.id, 'up');
+                }}
+              >
+                <ArrowUp className="w-3 h-3 text-muted-foreground" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7 bg-secondary/50 hover:bg-secondary border-border/50"
+                onClick={() => {
+                  useGameStore.getState().moveUnit(selectedUnit.id, 'down');
+                }}
+              >
+                <ArrowDown className="w-3 h-3 text-muted-foreground" />
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="h-7 px-2 text-xs flex items-center gap-1 ml-1 opacity-80 hover:opacity-100"
+                onClick={() => {
+                  if (window.confirm(`${selectedUnit.name}을(를) 파티에서 방출하시겠습니까?`)) {
+                    useGameStore.getState().removeUnit(selectedUnit.id);
+                    setSelectedUnit(null);
+                  }
+                }}
+              >
+                <Trash2 className="w-3 h-3" />
+                방출
+              </Button>
+            </div>
+          </div>
           
           <div className="space-y-0.5">
             <StatRow 

@@ -92,7 +92,7 @@ export function getClassDisplayName(unitClass: UnitClass): string {
 }
 
 function applyRarityMultiplier(stats: UnitStats, rarity: UnitRarity): UnitStats {
-  const multiplier = 1 + (rarity - 1) * 0.15;
+  const multiplier = Math.pow(1.25, rarity - 1);
   return {
     hp: Math.floor(stats.hp * multiplier),
     maxHp: Math.floor(stats.maxHp * multiplier),
@@ -111,11 +111,12 @@ let unitIdCounter = 0;
 export function createUnit(
   unitClass: UnitClass,
   rarity: UnitRarity = 1,
-  level: number = 1
+  level: number = 1,
+  nameOverride?: string
 ): Unit {
   const baseStats = CLASS_BASE_STATS[unitClass];
   const names = CLASS_NAMES[unitClass];
-  const name = names[Math.floor(Math.random() * names.length)];
+  const name = nameOverride || names[Math.floor(Math.random() * names.length)];
   
   const stats = applyRarityMultiplier(baseStats, rarity);
   
@@ -154,36 +155,36 @@ export function createInitialParty(): Unit[] {
 }
 
 export function getRarityColor(rarity: UnitRarity): string {
-  const colors: Record<UnitRarity, string> = {
+  const colors: Record<number, string> = {
     1: 'text-zinc-400',
     2: 'text-emerald-400',
     3: 'text-blue-400',
     4: 'text-purple-400',
     5: 'text-amber-400',
   };
-  return colors[rarity];
+  return colors[rarity] || 'text-rose-500 font-black drop-shadow-[0_0_8px_rgba(244,63,94,0.5)]';
 }
 
 export function getRarityBgColor(rarity: UnitRarity): string {
-  const colors: Record<UnitRarity, string> = {
+  const colors: Record<number, string> = {
     1: 'bg-zinc-400/20',
     2: 'bg-emerald-400/20',
     3: 'bg-blue-400/20',
     4: 'bg-purple-400/20',
     5: 'bg-amber-400/20',
   };
-  return colors[rarity];
+  return colors[rarity] || 'bg-rose-500/30';
 }
 
 export function getRarityBorderColor(rarity: UnitRarity): string {
-  const colors: Record<UnitRarity, string> = {
+  const colors: Record<number, string> = {
     1: 'border-zinc-500/50',
     2: 'border-emerald-500/50',
     3: 'border-blue-500/50',
     4: 'border-purple-500/50',
     5: 'border-amber-500/50',
   };
-  return colors[rarity];
+  return colors[rarity] || 'border-rose-500/80 shadow-[0_0_10px_rgba(244,63,94,0.4)]';
 }
 
 // Level up a unit's stats (increases all stats by 10%)

@@ -23,9 +23,9 @@ function generateShopUnits(seed: number): ShopUnit[] {
     const rarity = Math.min(3, Math.floor(((seed + i * 31) % 100) / 40) + 1) as UnitRarity;
     const unit = createUnit(classes[classIndex], rarity, 1);
     
-    // Price based on rarity
+    // Price based on rarity (1성=50, 2성=100, 3성=200)
     const basePrice = 50;
-    const price = basePrice * rarity;
+    const price = rarity === 3 ? 200 : basePrice * rarity;
     
     items.push({ unit, price });
   }
@@ -39,12 +39,13 @@ export function ShopScreen() {
   
   const shopUnits = useMemo(() => generateShopUnits(seed + map.playerX + map.playerY * 100), [seed, map.playerX, map.playerY]);
   
-  const canBuyUnit = (price: number) => {
-    return resources.gold >= price && party.length < 6;
+  const canBuyUnit = (unit: Unit, price: number) => {
+    const willMerge = party.some(u => u.class === unit.class && u.rarity === unit.rarity);
+    return resources.gold >= price && (party.length < 9 || willMerge);
   };
   
   const handlePurchase = (shopUnit: ShopUnit) => {
-    if (!canBuyUnit(shopUnit.price)) return;
+    if (!canBuyUnit(shopUnit.unit, shopUnit.price)) return;
     
     modifyResource('gold', -shopUnit.price);
     addUnit(shopUnit.unit);
@@ -69,7 +70,7 @@ export function ShopScreen() {
   };
   
   return (
-    <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="absolute inset-0 bg-background/95 backdrop-blur-sm z-10 flex items-center justify-center p-4">
       <div className="bg-card border border-border rounded-xl p-6 max-w-2xl w-full space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -86,16 +87,16 @@ export function ShopScreen() {
           </div>
         </div>
         
-        {party.length >= 6 && (
+        {party.length >= 9 && !shopUnits.some(su => canBuyUnit(su.unit, su.price) && !purchasedIds.has(su.unit.id)) && (
           <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg text-center text-rose-400">
-            Party is full! (6/6 units)
+            Party is full! (9/9 units) - Can only buy units that will merge.
           </div>
         )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {shopUnits.map((shopUnit) => {
             const isPurchased = purchasedIds.has(shopUnit.unit.id);
-            const canBuy = canBuyUnit(shopUnit.price) && !isPurchased;
+            const canBuy = canBuyUnit(shopUnit.unit, shopUnit.price) && !isPurchased;
             
             return (
               <div

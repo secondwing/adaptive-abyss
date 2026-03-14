@@ -65,16 +65,9 @@ export function MapView() {
                   room.cleared && 'opacity-60',
                   canMoveTo && !isPlayer && 'cursor-pointer hover:bg-secondary/50 hover:scale-105 border-primary/50',
                   !canMoveTo && !isPlayer && 'cursor-default border-border/30',
-                  isPlayer && 'border-primary bg-primary/20',
-                  dangerIntensity > 0 && !room.cleared && 'border-red-500/30'
+                  isPlayer && 'border-primary bg-primary/20'
                 )}
               >
-                {dangerIntensity > 0 && !room.cleared && (
-                  <div 
-                    className="absolute inset-0 bg-red-600 pointer-events-none transition-opacity duration-300" 
-                    style={{ opacity: dangerIntensity * 0.45 }} 
-                  />
-                )}
                 {room.resourceValue > 0 && !room.cleared && (
                   <div className="absolute top-0.5 right-0.5 w-2 h-2 z-10 bg-yellow-400 rounded-full shadow-[0_0_6px_rgba(250,204,21,0.8)] animate-pulse" />
                 )}

@@ -26,7 +26,7 @@ export interface Room {
 
 // ===== Unit Types =====
 export type UnitClass = 'warrior' | 'ranger' | 'mage' | 'healer' | 'rogue' | 'shaman';
-export type UnitRarity = 1 | 2 | 3 | 4 | 5;
+export type UnitRarity = number;
 
 export interface UnitStats {
   hp: number;
@@ -48,7 +48,9 @@ export interface Unit {
   level: number;
   exp: number;
   stats: UnitStats;
-  position: 'front' | 'back';
+  position: 'front' | 'back'; // Will be deprecated later for boardX/Y
+  boardX?: number;
+  boardY?: number;
   isEnemy?: boolean;
 }
 
@@ -138,6 +140,7 @@ export interface GameState {
   relics: Item[];
   map: MapState;
   battle: BattleState | null;
+  battleSpeed: 1 | 2 | 4;
   seed: number;
 }
 

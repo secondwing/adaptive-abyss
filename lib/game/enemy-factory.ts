@@ -148,35 +148,57 @@ function createEnemyFromTemplate(template: EnemyTemplate, chapter: number, dange
 export function generateBattleEnemies(roomType: RoomType, chapter: number, dangerLevel: number = 0): Enemy[] {
   const enemies: Enemy[] = [];
   
+  // Create all 25 possible grid positions for enemies
+  const availableSpots: { x: number; y: number }[] = [];
+  for (let y = 0; y < 5; y++) {
+    for (let x = 0; x < 5; x++) {
+      availableSpots.push({ x, y });
+    }
+  }
+  
+  // Shuffle available spots to get random distinct positions
+  for (let i = availableSpots.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [availableSpots[i], availableSpots[j]] = [availableSpots[j], availableSpots[i]];
+  }
+  
+  const addEnemy = (template: EnemyTemplate) => {
+    const enemy = createEnemyFromTemplate(template, chapter, dangerLevel);
+    const spot = availableSpots.pop() || { x: 4, y: 2 }; // Fallback
+    enemy.boardX = spot.x;
+    enemy.boardY = spot.y;
+    enemies.push(enemy);
+  };
+  
   switch (roomType) {
     case 'battle': {
       const count = Math.floor(Math.random() * 2) + 2; // 2-3 enemies
       for (let i = 0; i < count; i++) {
         const template = ENEMY_TEMPLATES[Math.floor(Math.random() * ENEMY_TEMPLATES.length)];
-        enemies.push(createEnemyFromTemplate(template, chapter, dangerLevel));
+        addEnemy(template);
       }
       break;
     }
     case 'elite': {
       // 1 elite + 1-2 normal
       const eliteTemplate = ELITE_TEMPLATES[Math.floor(Math.random() * ELITE_TEMPLATES.length)];
-      enemies.push(createEnemyFromTemplate(eliteTemplate, chapter, dangerLevel));
+      addEnemy(eliteTemplate);
       
       const minionCount = Math.floor(Math.random() * 2) + 1;
       for (let i = 0; i < minionCount; i++) {
         const template = ENEMY_TEMPLATES[Math.floor(Math.random() * ENEMY_TEMPLATES.length)];
-        enemies.push(createEnemyFromTemplate(template, chapter, dangerLevel));
+        addEnemy(template);
       }
       break;
     }
     case 'boss': {
       const bossTemplate = BOSS_TEMPLATES[Math.floor(Math.random() * BOSS_TEMPLATES.length)];
-      enemies.push(createEnemyFromTemplate(bossTemplate, chapter, dangerLevel));
+      addEnemy(bossTemplate);
       
       // Add 2 minions
       for (let i = 0; i < 2; i++) {
         const template = ENEMY_TEMPLATES[Math.floor(Math.random() * ENEMY_TEMPLATES.length)];
-        enemies.push(createEnemyFromTemplate(template, chapter, dangerLevel));
+        addEnemy(template);
       }
       break;
     }

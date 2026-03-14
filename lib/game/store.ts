@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { GameState, GamePhase, Unit, Room, BattleState, Item, Enemy, EXP_PER_LEVEL } from './types';
 import { generateMap, getAdjacentRooms } from './map-generator';
-import { createInitialParty, levelUpUnit } from './unit-factory';
+import { createInitialParty, levelUpUnit, createUnit } from './unit-factory';
 import { generateBattleEnemies } from './enemy-factory';
 
 const EXP_REQUIRED_PER_LEVEL = 100;
@@ -18,6 +18,7 @@ interface GameStore extends GameState {
   startBattle: (enemies: Enemy[]) => void;
   processBattleRound: () => void;
   endBattle: (victory: boolean) => void;
+  setBattleSpeed: (speed: 1 | 2 | 4) => void;
   
   // Resource actions
   modifyResource: (resource: keyof GameState['resources'], amount: number) => void;
@@ -25,6 +26,7 @@ interface GameStore extends GameState {
   // Party actions
   addUnit: (unit: Unit) => void;
   removeUnit: (unitId: string) => void;
+  moveUnit: (unitId: string, direction: 'up' | 'down') => void;
   healUnit: (unitId: string, amount: number) => void;
   healAllUnits: (percentage: number) => void;
   addExpToUnit: (unitId: string, amount: number) => void;
@@ -59,6 +61,7 @@ const createInitialState = (): Omit<GameState, 'seed'> & { seed: number } => {
     relics: [],
     map,
     battle: null,
+    battleSpeed: 1,
   };
 };
 
@@ -77,6 +80,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   setPhase: (phase) => set({ phase }),
+  
+  setBattleSpeed: (speed) => set({ battleSpeed: speed }),
 
   movePlayer: (x, y) => {
     const state = get();
@@ -208,23 +213,50 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   startBattle: (enemies) => {
     const state = get();
-    const allUnits = [...state.party, ...enemies];
+    
+    // Assign missing board positions to party members
+    const occupied = new Set<string>();
+    state.party.forEach(u => {
+      if (u.boardX !== undefined && u.boardY !== undefined) {
+        occupied.add(`${u.boardX},${u.boardY}`);
+      }
+    });
+    
+    const updatedParty = state.party.map((u) => {
+      if (u.boardX !== undefined && u.boardY !== undefined) return u;
+      
+      let bx = 0, by = 0;
+      outer: for (let y = 0; y < 5; y++) {
+        for (let x = 0; x < 5; x++) {
+          const key = `${x},${y}`;
+          if (!occupied.has(key)) {
+            bx = x;
+            by = y;
+            occupied.add(key);
+            break outer;
+          }
+        }
+      }
+      return { ...u, boardX: bx, boardY: by };
+    });
+
+    const allUnits = [...updatedParty, ...enemies];
     const turnOrder = allUnits
       .sort((a, b) => b.stats.spd - a.stats.spd)
       .map((u) => u.id);
     
     const battleState: BattleState = {
-      phase: 'placement',
+      phase: 'placement', // Start in placement!
       result: 'ongoing',
       round: 1,
-      allies: state.party.map((u) => ({ ...u, stats: { ...u.stats } })),
+      allies: updatedParty.map((u) => ({ ...u, stats: { ...u.stats } })),
       enemies: enemies.map((e) => ({ ...e, stats: { ...e.stats } })),
       logs: [],
       turnOrder,
       currentTurnIndex: 0,
     };
     
-    set({ battle: battleState, phase: 'battle' });
+    set({ battle: battleState, phase: 'battle', party: updatedParty });
   },
 
   processBattleRound: () => {
@@ -250,7 +282,24 @@ export const useGameStore = create<GameStore>((set, get) => ({
         
         if (targets.length === 0) continue;
         
-        const target = targets[Math.floor(Math.random() * targets.length)];
+        // Calculate Distance based on Grid. Let's assume X=4 is the front line for both sides.
+        // So distance = (4 - actorX) + (4 - targetX) + |actorY - targetY|
+        const getDistance = (u1: Unit | Enemy, u2: Unit | Enemy) => {
+          const xDistance = (4 - (u1.boardX || 0)) + (4 - (u2.boardX || 0)) + 1;
+          const yDistance = Math.abs((u1.boardY || 0) - (u2.boardY || 0));
+          return xDistance + Math.abs(yDistance) * 1.5; // Weigh row offset to prioritize straight lines
+        };
+        
+        let target = targets[0];
+        let minDistance = Infinity;
+        
+        targets.forEach(t => {
+          const d = getDistance(actor, t);
+          if (d < minDistance) {
+            minDistance = d;
+            target = t;
+          }
+        });
         
         // Calculate damage
         const isPhysical = actor.class !== 'mage' && actor.class !== 'shaman';
@@ -407,15 +456,68 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   addUnit: (unit) => {
-    set((state) => ({
-      party: [...state.party, unit],
-    }));
+    set((state) => {
+      let currentParty = [...state.party];
+      let currentUnit = { ...unit };
+      
+      while (true) {
+        // Find existing unit with same class and rarity
+        const matchIndex = currentParty.findIndex(
+          u => u.class === currentUnit.class && u.rarity === currentUnit.rarity
+        );
+        
+        if (matchIndex === -1) {
+          // No match, we can securely push it (if there's room)
+          if (currentParty.length >= 9) return state; 
+          currentParty.push(currentUnit);
+          return { party: currentParty };
+        }
+        
+        // Match found! Let's merge them
+        const match = currentParty[matchIndex];
+        currentParty.splice(matchIndex, 1);
+        
+        // Calculate total raw EXP from both units
+        const rawExp1 = (currentUnit.level - 1) * 100 + currentUnit.exp;
+        const rawExp2 = (match.level - 1) * 100 + match.exp;
+        const totalRawExp = rawExp1 + rawExp2;
+        
+        const newLevel = Math.floor(totalRawExp / 100) + 1;
+        const newExp = totalRawExp % 100;
+        
+        const newRarity = currentUnit.rarity + 1;
+        
+        // Re-create the unit with higher rarity to pull exponential stats
+        // Keep the existing party member's name for consistency
+        const mergedUnit = createUnit(currentUnit.class, newRarity, newLevel, match.name);
+        mergedUnit.exp = newExp; // Set the perfectly combined leftover EXP
+        
+        currentUnit = mergedUnit; // repeat loop to see if we can merge again
+      }
+    });
   },
 
   removeUnit: (unitId) => {
     set((state) => ({
       party: state.party.filter((u) => u.id !== unitId),
     }));
+  },
+
+  moveUnit: (unitId, direction) => {
+    set((state) => {
+      const index = state.party.findIndex(u => u.id === unitId);
+      if (index === -1) return state;
+      if (direction === 'up' && index === 0) return state;
+      if (direction === 'down' && index === state.party.length - 1) return state;
+
+      const newParty = [...state.party];
+      const targetIndex = direction === 'up' ? index - 1 : index + 1;
+      
+      // Swap properties
+      [newParty[index], newParty[targetIndex]] = [newParty[targetIndex], newParty[index]];
+      
+      return { party: newParty };
+    });
   },
 
   healUnit: (unitId, amount) => {

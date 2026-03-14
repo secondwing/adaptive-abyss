@@ -29,12 +29,12 @@ export function GameContainer() {
   return (
     <div className="h-screen max-h-screen overflow-hidden flex flex-col md:flex-row bg-background">
       {/* Left Column (HUD + Main Game Area) */}
-      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+      <div className="flex-1 flex flex-col overflow-hidden min-h-0 relative">
         {/* Resource HUD (Top of Left Column) */}
         <ResourceHUD />
         
         {/* Map view (center) */}
-        <div className="flex-[1_1_auto] flex flex-col overflow-hidden min-h-0">
+        <div className="flex-[1_1_auto] flex flex-col overflow-hidden min-h-0 relative z-0">
           <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
             <MapView />
           </div>
@@ -44,19 +44,21 @@ export function GameContainer() {
             <ActionBar />
           </div>
         </div>
+        
+        {/* Overlays that should only cover the main area, not the party panel */}
+        {phase === 'shop' && <ShopScreen />}
+        {phase === 'rest' && <RestScreen />}
+        {phase === 'event' && <EventScreen />}
+        {phase === 'treasure' && <TreasureScreen />}
       </div>
       
       {/* Right Column: Party panel (spanning full height on MD) */}
-      <div className="w-full md:w-72 lg:w-80 flex-[0_0_auto] md:flex-shrink-0 border-t md:border-t-0 md:border-l border-border/50 flex flex-col overflow-hidden min-h-0 h-[40vh] md:h-full md:max-h-full bg-card/30">
+      <div className="w-full md:w-72 lg:w-80 flex-[0_0_auto] md:flex-shrink-0 border-t md:border-t-0 md:border-l border-border/50 flex flex-col overflow-hidden min-h-0 h-[40vh] md:h-full md:max-h-full bg-card/30 z-20">
         <PartyPanel />
       </div>
       
-      {/* Overlay screens */}
+      {/* Absolute full-screen overlays */}
       {phase === 'battle' && <BattleScreen />}
-      {phase === 'shop' && <ShopScreen />}
-      {phase === 'rest' && <RestScreen />}
-      {phase === 'event' && <EventScreen />}
-      {phase === 'treasure' && <TreasureScreen />}
     </div>
   );
 }
