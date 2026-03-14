@@ -37,7 +37,7 @@ export function MapView() {
       </div>
       
       <div 
-        className="grid gap-1 p-4 bg-card/50 rounded-lg border border-border/50"
+        className="grid gap-0.5 p-2 md:gap-1 md:p-4 bg-card/50 rounded-lg border border-border/50"
         style={{ 
           gridTemplateColumns: `repeat(${map.width}, minmax(0, 1fr))`,
         }}
@@ -50,13 +50,15 @@ export function MapView() {
             const IconComponent = iconMap[iconName as keyof typeof iconMap] || Square;
             const colorClass = getRoomColor(room.type);
             
+            const dangerIntensity = room.dangerLevel > 0 ? Math.min(room.dangerLevel / (10 * map.chapter), 1) : 0;
+            
             return (
               <button
                 key={room.id}
                 onClick={() => canMoveTo && movePlayer(x, y)}
                 disabled={!canMoveTo && !isPlayer}
                 className={cn(
-                  'relative w-10 h-10 md:w-12 md:h-12 rounded-md flex items-center justify-center transition-all duration-200',
+                  'relative w-8 h-8 md:w-12 md:h-12 rounded-md flex items-center justify-center transition-all duration-200 overflow-hidden',
                   'border',
                   isPlayer && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
                   room.visited && 'bg-secondary/30',
@@ -64,8 +66,18 @@ export function MapView() {
                   canMoveTo && !isPlayer && 'cursor-pointer hover:bg-secondary/50 hover:scale-105 border-primary/50',
                   !canMoveTo && !isPlayer && 'cursor-default border-border/30',
                   isPlayer && 'border-primary bg-primary/20',
+                  dangerIntensity > 0 && !room.cleared && 'border-red-500/30'
                 )}
               >
+                {dangerIntensity > 0 && !room.cleared && (
+                  <div 
+                    className="absolute inset-0 bg-red-600 pointer-events-none transition-opacity duration-300" 
+                    style={{ opacity: dangerIntensity * 0.45 }} 
+                  />
+                )}
+                {room.resourceValue > 0 && !room.cleared && (
+                  <div className="absolute top-0.5 right-0.5 w-2 h-2 z-10 bg-yellow-400 rounded-full shadow-[0_0_6px_rgba(250,204,21,0.8)] animate-pulse" />
+                )}
                 <IconComponent 
                   className={cn(
                     'w-5 h-5 md:w-6 md:h-6',

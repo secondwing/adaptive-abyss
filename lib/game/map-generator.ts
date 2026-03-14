@@ -68,6 +68,9 @@ export function generateMap(
         type: selectRoomType(rng),
         visited: false,
         cleared: false,
+        dangerLevel: 0,
+        resourceValue: 0,
+        lastUpdateTurn: 1,
       };
     }
   }

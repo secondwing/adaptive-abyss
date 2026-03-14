@@ -85,6 +85,17 @@ export function ActionBar() {
             End Turn
             <span className="text-xs text-muted-foreground">(+5G, AP Reset)</span>
           </Button>
+          
+          {process.env.NODE_ENV === 'development' || true ? (
+            <Button
+              variant="destructive"
+              onClick={() => useGameStore.getState().advanceTime(10)}
+              className="gap-2 ml-4 opacity-50 hover:opacity-100"
+              title="Demonstrate Ecosystem mechanics"
+            >
+              Dev: Time +10
+            </Button>
+          ) : null}
         </div>
         
         {/* AP indicator */}

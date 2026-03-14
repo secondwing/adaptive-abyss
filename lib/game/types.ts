@@ -19,6 +19,9 @@ export interface Room {
   cleared: boolean;
   enemies?: Enemy[];
   rewards?: Reward;
+  dangerLevel: number;
+  resourceValue: number;
+  lastUpdateTurn: number;
 }
 
 // ===== Unit Types =====

@@ -58,6 +58,16 @@ export function ResourceHUD() {
         <span className="text-sm font-semibold">{map.chapter}</span>
       </div>
       
+      {(() => {
+        const totalDanger = map.rooms.flat().reduce((sum, room) => sum + room.dangerLevel, 0);
+        return totalDanger > 0 ? (
+          <div className="flex items-center gap-2 px-3 py-1 bg-red-500/10 rounded-lg border border-red-500/20">
+            <span className="text-xs font-medium text-red-400">Danger</span>
+            <span className="text-sm font-bold text-red-500 tabular-nums">{Math.floor(totalDanger)}</span>
+          </div>
+        ) : null;
+      })()}
+      
       <div className="w-px h-8 bg-border/50" />
       
       <ResourceItem

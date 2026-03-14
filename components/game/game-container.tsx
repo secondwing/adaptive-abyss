@@ -27,26 +27,28 @@ export function GameContainer() {
   }
   
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      {/* Resource HUD */}
-      <ResourceHUD />
-      
-      {/* Main game area */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+    <div className="h-screen max-h-screen overflow-hidden flex flex-col md:flex-row bg-background">
+      {/* Left Column (HUD + Main Game Area) */}
+      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+        {/* Resource HUD (Top of Left Column) */}
+        <ResourceHUD />
+        
         {/* Map view (center) */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-[1_1_auto] flex flex-col overflow-hidden min-h-0">
           <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
             <MapView />
           </div>
           
-          {/* Action bar (bottom) */}
-          <ActionBar />
+          {/* Action bar (bottom of Left Column) */}
+          <div className="flex-none">
+            <ActionBar />
+          </div>
         </div>
-        
-        {/* Party panel (right sidebar) */}
-        <div className="w-full md:w-72 lg:w-80 flex-shrink-0 border-t md:border-t-0 md:border-l border-border/50 md:h-full overflow-hidden">
-          <PartyPanel />
-        </div>
+      </div>
+      
+      {/* Right Column: Party panel (spanning full height on MD) */}
+      <div className="w-full md:w-72 lg:w-80 flex-[0_0_auto] md:flex-shrink-0 border-t md:border-t-0 md:border-l border-border/50 flex flex-col overflow-hidden min-h-0 h-[40vh] md:h-full md:max-h-full bg-card/30">
+        <PartyPanel />
       </div>
       
       {/* Overlay screens */}

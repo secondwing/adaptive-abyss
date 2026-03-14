@@ -12,6 +12,7 @@ interface GameStore extends GameState {
   setPhase: (phase: GamePhase) => void;
   movePlayer: (x: number, y: number) => void;
   endTurn: () => void;
+  advanceTime: (turns: number) => void;
   
   // Battle actions
   startBattle: (enemies: Enemy[]) => void;
@@ -110,7 +111,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         case 'battle':
         case 'elite':
         case 'boss':
-          const enemies = generateBattleEnemies(updatedRoom.type, state.map.chapter);
+          const enemies = generateBattleEnemies(updatedRoom.type, state.map.chapter, updatedRoom.dangerLevel);
           get().startBattle(enemies);
           break;
         case 'shop':
@@ -131,14 +132,78 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   endTurn: () => {
-    set((state) => ({
-      turn: state.turn + 1,
+    const state = get();
+    // End turn gives a small time penalty (1 turn) + resets AP
+    get().advanceTime(1);
+    
+    set((s) => ({
       resources: {
-        ...state.resources,
-        ap: state.resources.maxAp,
-        gold: state.resources.gold + 5, // Turn income
+        ...s.resources,
+        ap: s.resources.maxAp,
+        gold: s.resources.gold + 5, // Turn income
       },
     }));
+  },
+
+  advanceTime: (turns) => {
+    set((state) => {
+      const newTurn = state.turn + turns;
+      
+      // Process Dungeon Ecosystem (Adaptive Abyss)
+      const newRooms = state.map.rooms.map((row) =>
+        row.map((room) => {
+          // If room is already cleared, or it's the start, skip major danger updates for now, 
+          // or let it respawn later.
+          // For now, let's say rooms that are NOT visited yet will slowly grow more dangerous.
+          // Rooms that are cleared might slowly accumulate resources or eventually respawn enemies.
+          
+          let newDanger = room.dangerLevel;
+          let newResource = room.resourceValue;
+          
+          const turnsPassedSinceUpdate = newTurn - room.lastUpdateTurn;
+          
+          if (turnsPassedSinceUpdate > 0) {
+            if (!room.visited && !room.cleared) {
+              // Unvisited rooms get more dangerous over time
+              // Increase danger by 1 per turn, up to a cap (e.g., 10 * chapter)
+              const maxDanger = 10 * state.map.chapter;
+              newDanger = Math.min(maxDanger, newDanger + turnsPassedSinceUpdate);
+              
+              // Depending on type, it might accumulate resources
+              if (room.type === 'treasure' || room.type === 'event') {
+                newResource += turnsPassedSinceUpdate * 2;
+              } else if (room.type === 'battle' || room.type === 'elite') {
+                // Enemies hoard some gold/resources over time
+                newResource += turnsPassedSinceUpdate;
+              }
+            } else if (room.cleared) {
+              // Cleared rooms might slowly grow new dangers (respawn mechanic)
+              // This is a slow process
+              if (room.type !== 'start' && room.type !== 'shop' && room.type !== 'rest') {
+                newDanger += turnsPassedSinceUpdate * 0.2; // 5 turns = 1 danger
+                // If danger reaches a threshold, it could respawn. For now, just accumulate.
+                // Later: if newDanger > 10, room.cleared = false, room.type = 'battle', newDanger = 0
+              }
+            }
+          }
+
+          return {
+            ...room,
+            dangerLevel: newDanger,
+            resourceValue: newResource,
+            lastUpdateTurn: newTurn,
+          };
+        })
+      );
+
+      return {
+        turn: newTurn,
+        map: {
+          ...state.map,
+          rooms: newRooms,
+        },
+      };
+    });
   },
 
   startBattle: (enemies) => {
@@ -260,9 +325,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const state = get();
     if (!state.battle) return;
     
+    // Get current room to factor in environmental rewards
+    const currentRoom = state.map.rooms[state.map.playerY][state.map.playerX];
+    
     if (victory) {
-      // Calculate rewards
-      const totalGold = state.battle.enemies.reduce((sum, e) => sum + e.goldReward, 0);
+      // Calculate rewards including room's accumulated resources/gold
+      const totalGold = state.battle.enemies.reduce((sum, e) => sum + e.goldReward, 0) + currentRoom.resourceValue;
       const totalExp = state.battle.enemies.reduce((sum, e) => sum + e.expReward, 0);
       
       // Sync battle HP back to party and apply rewards
@@ -294,25 +362,36 @@ export const useGameStore = create<GameStore>((set, get) => ({
         };
       });
       
-      set((s) => ({
-        phase: 'map',
-        battle: null,
-        resources: {
-          ...s.resources,
-          gold: s.resources.gold + totalGold,
-        },
-        party: updatedParty,
-        map: {
-          ...s.map,
-          rooms: s.map.rooms.map((row, ry) =>
+      set((s) => {
+        // Handle Boss Defeat (Chapter Progression)
+        let nextMap = { ...s.map };
+        if (currentRoom.type === 'boss') {
+          // Generate new harder map for next chapter
+          const nextChapter = s.map.chapter + 1;
+          nextMap = generateMap(7, 7, Date.now(), nextChapter);
+        } else {
+          // Mark room as cleared
+          nextMap.rooms = s.map.rooms.map((row, ry) =>
             row.map((cell, rx) =>
               rx === s.map.playerX && ry === s.map.playerY
                 ? { ...cell, cleared: true }
                 : cell
             )
-          ),
-        },
-      }));
+          );
+        }
+      
+        return {
+          phase: 'map',
+          battle: null,
+          resources: {
+            ...s.resources,
+            gold: s.resources.gold + totalGold,
+            ap: currentRoom.type === 'boss' ? s.resources.maxAp : s.resources.ap // refill AP on chapter clear
+          },
+          party: updatedParty,
+          map: nextMap,
+        };
+      });
     } else {
       set({ phase: 'gameOver', battle: null });
     }

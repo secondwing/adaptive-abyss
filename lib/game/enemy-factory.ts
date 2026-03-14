@@ -109,17 +109,23 @@ const BOSS_TEMPLATES: EnemyTemplate[] = [
 
 let enemyIdCounter = 1000;
 
-function createEnemyFromTemplate(template: EnemyTemplate, chapter: number): Enemy {
+function createEnemyFromTemplate(template: EnemyTemplate, chapter: number, dangerLevel: number = 0): Enemy {
+  // Base scale by chapter
   const levelMultiplier = 1 + (chapter - 1) * 0.3;
   
+  // Danger scale by dangerLevel (e.g. 5% stat increase per danger level)
+  const dangerMultiplier = 1 + (dangerLevel * 0.05);
+  
+  const finalMultiplier = levelMultiplier * dangerMultiplier;
+  
   const scaledStats: UnitStats = {
-    hp: Math.floor(template.baseStats.hp * levelMultiplier),
-    maxHp: Math.floor(template.baseStats.maxHp * levelMultiplier),
-    atk: Math.floor(template.baseStats.atk * levelMultiplier),
-    def: Math.floor(template.baseStats.def * levelMultiplier),
-    mgk: Math.floor(template.baseStats.mgk * levelMultiplier),
-    res: Math.floor(template.baseStats.res * levelMultiplier),
-    spd: Math.floor(template.baseStats.spd * levelMultiplier),
+    hp: Math.floor(template.baseStats.hp * finalMultiplier),
+    maxHp: Math.floor(template.baseStats.maxHp * finalMultiplier),
+    atk: Math.floor(template.baseStats.atk * finalMultiplier),
+    def: Math.floor(template.baseStats.def * finalMultiplier),
+    mgk: Math.floor(template.baseStats.mgk * finalMultiplier),
+    res: Math.floor(template.baseStats.res * finalMultiplier),
+    spd: Math.floor(template.baseStats.spd * finalMultiplier),
     crit: template.baseStats.crit,
     critDmg: template.baseStats.critDmg,
   };
@@ -134,12 +140,12 @@ function createEnemyFromTemplate(template: EnemyTemplate, chapter: number): Enem
     stats: scaledStats,
     position: template.class === 'warrior' || template.class === 'rogue' ? 'front' : 'back',
     isEnemy: true,
-    goldReward: Math.floor(template.goldReward * levelMultiplier),
-    expReward: Math.floor(template.expReward * levelMultiplier),
+    goldReward: Math.floor(template.goldReward * finalMultiplier),
+    expReward: Math.floor(template.expReward * finalMultiplier),
   };
 }
 
-export function generateBattleEnemies(roomType: RoomType, chapter: number): Enemy[] {
+export function generateBattleEnemies(roomType: RoomType, chapter: number, dangerLevel: number = 0): Enemy[] {
   const enemies: Enemy[] = [];
   
   switch (roomType) {
@@ -147,30 +153,30 @@ export function generateBattleEnemies(roomType: RoomType, chapter: number): Enem
       const count = Math.floor(Math.random() * 2) + 2; // 2-3 enemies
       for (let i = 0; i < count; i++) {
         const template = ENEMY_TEMPLATES[Math.floor(Math.random() * ENEMY_TEMPLATES.length)];
-        enemies.push(createEnemyFromTemplate(template, chapter));
+        enemies.push(createEnemyFromTemplate(template, chapter, dangerLevel));
       }
       break;
     }
     case 'elite': {
       // 1 elite + 1-2 normal
       const eliteTemplate = ELITE_TEMPLATES[Math.floor(Math.random() * ELITE_TEMPLATES.length)];
-      enemies.push(createEnemyFromTemplate(eliteTemplate, chapter));
+      enemies.push(createEnemyFromTemplate(eliteTemplate, chapter, dangerLevel));
       
       const minionCount = Math.floor(Math.random() * 2) + 1;
       for (let i = 0; i < minionCount; i++) {
         const template = ENEMY_TEMPLATES[Math.floor(Math.random() * ENEMY_TEMPLATES.length)];
-        enemies.push(createEnemyFromTemplate(template, chapter));
+        enemies.push(createEnemyFromTemplate(template, chapter, dangerLevel));
       }
       break;
     }
     case 'boss': {
       const bossTemplate = BOSS_TEMPLATES[Math.floor(Math.random() * BOSS_TEMPLATES.length)];
-      enemies.push(createEnemyFromTemplate(bossTemplate, chapter));
+      enemies.push(createEnemyFromTemplate(bossTemplate, chapter, dangerLevel));
       
       // Add 2 minions
       for (let i = 0; i < 2; i++) {
         const template = ENEMY_TEMPLATES[Math.floor(Math.random() * ENEMY_TEMPLATES.length)];
-        enemies.push(createEnemyFromTemplate(template, chapter));
+        enemies.push(createEnemyFromTemplate(template, chapter, dangerLevel));
       }
       break;
     }
