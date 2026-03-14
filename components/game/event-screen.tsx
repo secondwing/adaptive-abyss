@@ -176,7 +176,6 @@ function getEffectLabel(type: string, amount: number) {
 export function EventScreen() {
   const { modifyResource, healAllUnits, distributeExp, setPhase, seed, map, party } = useGameStore();
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [isResolved, setIsResolved] = useState(false);
   
   const event = useMemo(() => {
     const eventIndex = (seed + map.playerX * 7 + map.playerY * 11) % EVENTS.length;
@@ -184,28 +183,23 @@ export function EventScreen() {
   }, [seed, map.playerX, map.playerY]);
   
   const handleChoice = (optionIndex: number) => {
-    if (isResolved) return;
+    setSelectedOption(optionIndex);
+  };
+  
+  const handleLeave = () => {
+    if (selectedOption === null) return;
     
-    const option = event.options[optionIndex];
-    
-    // Apply effects
+    // Apply effects right as we leave
+    const option = event.options[selectedOption];
     option.effects.forEach(effect => {
       if (effect.type === 'heal') {
-        // Heal is percentage-based for all units
         healAllUnits(effect.amount / 100);
       } else if (effect.type === 'exp') {
-        // EXP is distributed to all alive units
         distributeExp(effect.amount);
       } else {
         modifyResource(effect.type, effect.amount);
       }
     });
-    
-    setSelectedOption(optionIndex);
-    setIsResolved(true);
-  };
-  
-  const handleLeave = () => {
     // Mark room as cleared
     useGameStore.setState((state) => ({
       map: {
@@ -238,18 +232,17 @@ export function EventScreen() {
             <button
               key={index}
               onClick={() => handleChoice(index)}
-              disabled={isResolved}
               className={cn(
                 'w-full p-4 rounded-lg border text-left transition-all',
-                isResolved && selectedOption === index && 'bg-primary/20 border-primary',
-                isResolved && selectedOption !== index && 'opacity-40',
-                !isResolved && 'hover:bg-secondary/50 hover:border-primary/50',
+                selectedOption === index && 'bg-primary/20 border-primary',
+                selectedOption !== null && selectedOption !== index && 'opacity-60',
+                'hover:bg-secondary/50 hover:border-primary/50',
                 'bg-secondary/30 border-border',
               )}
             >
               <div className="flex items-center justify-between mb-1">
                 <span className="font-semibold">{option.text}</span>
-                {isResolved && selectedOption === index && (
+                {selectedOption === index && (
                   <Check className="w-5 h-5 text-primary" />
                 )}
               </div>
@@ -275,7 +268,8 @@ export function EventScreen() {
           ))}
         </div>
         
-        {isResolved && (
+        
+        {selectedOption !== null && (
           <Button
             onClick={handleLeave}
             className="w-full gap-2"

@@ -68,7 +68,7 @@ export function generateMap(
         type: selectRoomType(rng),
         visited: false,
         cleared: false,
-        dangerLevel: 0,
+        dangerLevel: (chapter - 1) * 10,
         resourceValue: 0,
         lastUpdateTurn: 1,
       };
@@ -83,6 +83,7 @@ export function generateMap(
     type: 'start',
     visited: true,
     cleared: true,
+    dangerLevel: 0,
   };
   
   // Set boss room (top area)
@@ -103,9 +104,11 @@ export function generateMap(
   
   for (const { type, count } of guaranteedRooms) {
     let placed = 0;
+    let attempts = 0;
     const existingCount = rooms.flat().filter((r) => r.type === type).length;
     
-    while (placed < count - existingCount) {
+    while (placed < count - existingCount && attempts < 100) {
+      attempts++;
       const x = rng.nextInt(0, width - 1);
       const y = rng.nextInt(1, height - 2);
       
@@ -117,11 +120,13 @@ export function generateMap(
   }
   
   // Add elite rooms based on chapter
-  const eliteCount = chapter + 1;
+  const eliteCount = Math.min(chapter + 1, Math.floor(width * height * 0.3)); // Cap elites to 30% of map
   let elitesPlaced = 0;
-  while (elitesPlaced < eliteCount) {
+  let eliteAttempts = 0;
+  while (elitesPlaced < eliteCount && eliteAttempts < 100) {
+    eliteAttempts++;
     const x = rng.nextInt(0, width - 1);
-    const y = rng.nextInt(1, Math.floor(height / 2));
+    const y = rng.nextInt(1, height - 2);
     
     if (rooms[y][x].type === 'battle') {
       rooms[y][x] = { ...rooms[y][x], type: 'elite' };
