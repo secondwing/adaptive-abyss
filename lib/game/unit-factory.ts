@@ -118,21 +118,12 @@ export function createUnit(
   const names = CLASS_NAMES[unitClass];
   const name = nameOverride || names[Math.floor(Math.random() * names.length)];
   
-  const stats = applyRarityMultiplier(baseStats, rarity);
+  let scaledStats = applyRarityMultiplier(baseStats, rarity);
   
-  // Apply level scaling
-  const levelMultiplier = 1 + (level - 1) * 0.1;
-  const scaledStats: UnitStats = {
-    hp: Math.floor(stats.hp * levelMultiplier),
-    maxHp: Math.floor(stats.maxHp * levelMultiplier),
-    atk: Math.floor(stats.atk * levelMultiplier),
-    def: Math.floor(stats.def * levelMultiplier),
-    mgk: Math.floor(stats.mgk * levelMultiplier),
-    res: Math.floor(stats.res * levelMultiplier),
-    spd: Math.floor(stats.spd * levelMultiplier),
-    crit: stats.crit,
-    critDmg: stats.critDmg,
-  };
+  // Apply level scaling exactly like combat progression to prevent stat drops on merge
+  for (let i = 1; i < level; i++) {
+    scaledStats = levelUpUnit(scaledStats);
+  }
   
   return {
     id: `unit-${++unitIdCounter}`,
